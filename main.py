@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, session
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-app = Flask("app", static_url_path="")
+app = Flask("app")
 app.config["SECRET_KEY"] = os.getenv("secret")
 
 socketio = SocketIO(app)
