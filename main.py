@@ -30,7 +30,7 @@ def joined(username):
 @socketio.on("message")
 def chat_message(user, room, message):
   emit("message", {"user":user, "message":message}, room=room)
-  print("sent message")
+  print(user + " sent a message in the room " + room)
 
 @socketio.on("changeroom")
 def changeroom(room):
