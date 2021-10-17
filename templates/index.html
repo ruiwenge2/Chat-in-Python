@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <title>Chat</title>
+    <link href="/chat.svg" rel="icon">
     <style>
       body {
         text-align:center;
@@ -9,6 +11,42 @@
       #changeroom {
         display:none;
       }
+      #chat, #users-wrapper {
+        margin:0 auto;
+        width:400px;
+        border:3px solid black;
+        height:300px;
+      }
+      #users-wrapper {
+        height:200px;
+      }
+      #messages, #users {
+        width:390px;
+        height:200px;
+        overflow:auto;
+      }
+      #users {
+        height:140px;
+      }
+      button {
+        background:white;
+        color:blue;
+        width:105px;
+        height:30px;
+        border:2px solid blue;
+        border-radius:5px;
+        cursor:pointer;
+        user-select:none;
+        transition:all 0.3s ease-in-out;
+      }
+      button:hover {
+        background:blue;
+        color:white;
+      }
+      input {
+        width:200px;
+        height:23px;
+      }
     </style>
   </head>
   <body>
@@ -16,35 +54,52 @@
       <h1>Chat</h1>
       <h3>Hi {{session["username"]}}</h3>
       <div id="chat">
-        <div id="messages"></div>
-        <input id="input">
+        <br><br>
+        <div id="messages"></div><br>
+        <input id="input" autocomplete="off">
         <button onclick="send()">Send</button>
+        <br><br>
       </div>
       <h2 id="roomname">You are in the main room</h2>
+      <div id="users-wrapper">
+        <h3>Users online</h3>
+        <div id="users"></div>
+      </div><br><br>
       <button onclick="show()">Change Room</button>
       <div id="changeroom">
         <h3>Enter room name:</h3>
         <input id="newroomname">
         <button onclick="changeRoom()">Change</button>
       </div>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
       <script>
         const socket = io();
         const username = "{{session['username']}}";
+        const users = document.getElementById("users");
         const input = document.getElementById("input");
         const messages = document.getElementById("messages");
         const newroomname = document.getElementById("newroomname");
         const roomname = document.getElementById("roomname");
         var room = "main";
 
-        socket.emit("joined");
+        socket.on("connect", () => {
+          socket.emit("joined", username);
+        });
+
+        input.addEventListener("keydown", e => {
+          if(e.key == "Enter") send();
+        });
 
         function send(){
+          if(!validMessage(input.value)) return;
           socket.emit("message", username, room, input.value);
+          input.value = "";
+          input.focus();
         }
 
         function show(){
           document.getElementById("changeroom").style.display = "block";
+          newroomname.focus();
         }
 
         function changeRoom(){
@@ -52,19 +107,45 @@
           room = newroomname.value;
         }
 
+        function encodeHTML(text){
+          var div = document.createElement("div");
+          div.innerText = text;
+          return div.innerHTML;
+        }
+
+        function validMessage(message){
+          if(!message) return false;
+          for(var i of message){
+            if(i != " ") return true;
+          }
+          return false;
+        }
+
         socket.on("message", data => {
-          messages.innerHTML += `<br>${data.user}:${data.message}`
+          messages.innerHTML += `<p>${encodeHTML(data.user)}:${encodeHTML(data.message)}</p>`;
+          messages.scrollTo(0, messages.scrollHeight);
         });
 
         socket.on("room", words => {
+          messages.innerHTML = "";
           roomname.innerHTML = words;
+          newroomname.value = "";
+          input.focus();
         });
+
+        socket.on("users_update", userslist => {
+          users.innerHTML = "";
+          for(let i of userslist){
+            users.innerHTML += `<p>${encodeHTML(i)}</p>`;
+          }
+        });
+
       </script>
     {% else %}
     <h1>Enter your username:</h1>
     <form action="/setusername" method="POST">
       <input name="username">
-      <input type="submit">
+      <button>Done</button>
     </form>
     {% endif %}
   </body>
