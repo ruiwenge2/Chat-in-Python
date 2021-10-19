@@ -51,96 +51,96 @@
   </head>
   <body>
     {% if loggedin %}
-      <h1>Chat</h1>
-      <h3>Hi {{session["username"]}}</h3>
-      <div id="chat">
-        <br><br>
-        <div id="messages"></div><br>
-        <input id="input" autocomplete="off">
-        <button onclick="send()">Send</button>
-        <br><br>
-      </div>
-      <h2 id="roomname">You are in the main room</h2>
-      <div id="users-wrapper">
-        <h3>Users online</h3>
-        <div id="users"></div>
-      </div><br><br>
-      <button onclick="show()">Change Room</button>
-      <div id="changeroom">
-        <h3>Enter room name:</h3>
-        <input id="newroomname">
-        <button onclick="changeRoom()">Change</button>
-      </div>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
-      <script>
-        const socket = io();
-        const username = "{{session['username']}}";
-        const users = document.getElementById("users");
-        const input = document.getElementById("input");
-        const messages = document.getElementById("messages");
-        const newroomname = document.getElementById("newroomname");
-        const roomname = document.getElementById("roomname");
-        var room = "main";
+    <h1>Chat</h1>
+    <h3>Hi {{session["username"]}}</h3>
+    <div id="chat">
+      <br><br>
+      <div id="messages"></div><br>
+      <input id="input" autocomplete="off">
+      <button onclick="send()">Send</button>
+      <br><br>
+    </div>
+    <h2 id="roomname">You are in the main room</h2>
+    <div id="users-wrapper">
+      <h3>Users online</h3>
+      <div id="users"></div>
+    </div><br><br>
+    <button onclick="show()">Change Room</button>
+    <div id="changeroom">
+      <h3>Enter room name:</h3>
+      <input id="newroomname">
+      <button onclick="changeRoom()">Change</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const username = "{{session['username']}}";
+      const users = document.getElementById("users");
+      const input = document.getElementById("input");
+      const messages = document.getElementById("messages");
+      const newroomname = document.getElementById("newroomname");
+      const roomname = document.getElementById("roomname");
+      var room = "main";
 
-        socket.on("connect", () => {
-          socket.emit("joined", username);
-        });
+      socket.on("connect", () => {
+        socket.emit("joined", username);
+      });
 
-        input.addEventListener("keydown", e => {
-          if(e.key == "Enter") send();
-        });
+      input.addEventListener("keydown", e => {
+        if(e.key == "Enter") send();
+      });
 
-        function send(){
-          if(!validMessage(input.value)) return;
-          socket.emit("message", username, room, input.value);
-          input.value = "";
-          input.focus();
+      function send(){
+        if(!validMessage(input.value)) return;
+        socket.emit("message", username, room, input.value);
+        input.value = "";
+        input.focus();
+      }
+
+      function show(){
+        document.getElementById("changeroom").style.display = "block";
+        newroomname.focus();
+      }
+
+      function changeRoom(){
+        socket.emit("changeroom", newroomname.value);
+        room = newroomname.value;
+      }
+
+      function encodeHTML(text){
+        var div = document.createElement("div");
+        div.innerText = text;
+        return div.innerHTML;
+      }
+
+      function validMessage(message){
+        if(!message) return false;
+        for(var i of message){
+          if(i != " ") return true;
         }
+        return false;
+      }
 
-        function show(){
-          document.getElementById("changeroom").style.display = "block";
-          newroomname.focus();
+      socket.on("message", data => {
+        messages.innerHTML += `<p>${encodeHTML(data.user)}: ${encodeHTML(data.message)}</p>`;
+        messages.scrollTo(0, messages.scrollHeight);
+      });
+
+      socket.on("room", words => {
+        messages.innerHTML = "";
+        roomname.innerHTML = words;
+        newroomname.value = "";
+        input.focus();
+      });
+
+      socket.on("users_update", userslist => {
+        users.innerHTML = "";
+        for(let i of userslist){
+          users.innerHTML += `<p>${encodeHTML(i)}</p>`;
         }
+      });
 
-        function changeRoom(){
-          socket.emit("changeroom", newroomname.value);
-          room = newroomname.value;
-        }
-
-        function encodeHTML(text){
-          var div = document.createElement("div");
-          div.innerText = text;
-          return div.innerHTML;
-        }
-
-        function validMessage(message){
-          if(!message) return false;
-          for(var i of message){
-            if(i != " ") return true;
-          }
-          return false;
-        }
-
-        socket.on("message", data => {
-          messages.innerHTML += `<p>${encodeHTML(data.user)}: ${encodeHTML(data.message)}</p>`;
-          messages.scrollTo(0, messages.scrollHeight);
-        });
-
-        socket.on("room", words => {
-          messages.innerHTML = "";
-          roomname.innerHTML = words;
-          newroomname.value = "";
-          input.focus();
-        });
-
-        socket.on("users_update", userslist => {
-          users.innerHTML = "";
-          for(let i of userslist){
-            users.innerHTML += `<p>${encodeHTML(i)}</p>`;
-          }
-        });
-
-      </script>
+    </script>
     {% else %}
     <h1>Enter your username:</h1>
     <form action="/setusername" method="POST">
